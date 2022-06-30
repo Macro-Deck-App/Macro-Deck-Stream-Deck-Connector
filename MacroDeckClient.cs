@@ -1,6 +1,5 @@
 ﻿using DeckSurf.SDK.Core;
 using DeckSurf.SDK.Models;
-using DeckSurf.SDK.Util;
 using MacroDeck.StreamDeckConnector.Models;
 using Newtonsoft.Json.Linq;
 using System;
@@ -73,6 +72,8 @@ namespace MacroDeck.StreamDeckConnector
 
         public bool Closed { get; private set; } = false;
 
+        private bool buttonPressed = false;
+
         public MacroDeckClient(Uri uri, ConnectedDevice connectedDevice)
         {
             _connectedDevice = connectedDevice;
@@ -131,15 +132,18 @@ namespace MacroDeck.StreamDeckConnector
             switch (e.Kind)
             {
                 case ButtonEventKind.DOWN:
+                    this.buttonPressed = true;
                     SendAsync(new ButtonPressMessageModel() { Id = id });
                     break;
                 case ButtonEventKind.UP:
+                    this.buttonPressed = false;
                     SendAsync(new ButtonReleaseMessageModel() { Id = id });
                     break;
                 case ButtonEventKind.LONG_DOWN:
                     SendAsync(new ButtonLongPressMessageModel() { Id = id });
                     break;
                 case ButtonEventKind.LONG_UP:
+                    this.buttonPressed = false;
                     SendAsync(new ButtonLongPressReleaseMessageModel() { Id = id });
                     break;
             }
@@ -206,7 +210,7 @@ namespace MacroDeck.StreamDeckConnector
             if (actionButton != null)
             {
                 actionButton.FrameTick();
-                var frame = actionButton.GetCurrentFrame(this._connectedDevice.ButtonSize);
+                var frame = actionButton.GetCurrentFrame(this._connectedDevice.ButtonSize, this.buttonPressed && this._connectedDevice?.PressedButtonId == id);
                 if (frame == null) return;
                 this._connectedDevice?.SetKey(id, frame);
             }

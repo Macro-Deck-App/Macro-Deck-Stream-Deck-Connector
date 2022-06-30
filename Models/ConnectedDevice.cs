@@ -3,12 +3,9 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading;
 using DeckSurf.SDK.Core;
-using DeckSurf.SDK.Util;
 using HidSharp;
 using MacroDeck.StreamDeckConnector;
 
@@ -99,7 +96,7 @@ namespace DeckSurf.SDK.Models
         /// <param name="e">Information on the button press.</param>
         public delegate void ReceivedButtonPressHandler(object source, ButtonPressEventArgs e);
 
-        private int pressedButtonId = 0;
+        public int PressedButtonId { get; private set; } = 0;
 
         private System.Timers.Timer longPressTimer = new System.Timers.Timer();
 
@@ -283,7 +280,7 @@ namespace DeckSurf.SDK.Models
                         iteration++;
                     }
                 }
-            } catch (Exception ex)
+            } catch
             {
                 return false;
             }
@@ -300,18 +297,18 @@ namespace DeckSurf.SDK.Models
 
                 var buttonData = new ArraySegment<byte>(this.keyPressBuffer, ButtonPressHeaderOffset, ButtonCount).ToArray();
 
-                if (this.pressedButtonId == -1)
+                if (this.PressedButtonId == -1)
                 {
                     if (this.OnButtonPress != null)
                     {
-                        this.OnButtonPress(this.UnderlyingDevice, new ButtonPressEventArgs(pressedButtonId, ButtonEventKind.UP));
+                        this.OnButtonPress(this.UnderlyingDevice, new ButtonPressEventArgs(PressedButtonId, ButtonEventKind.UP));
                     }
                 }
 
                 var pressedButton = Array.IndexOf(buttonData, (byte)1);
                 if (pressedButton > -1)
                 {
-                    this.pressedButtonId = pressedButton;
+                    this.PressedButtonId = pressedButton;
                 }
 
                 var buttonKind = pressedButton != -1 ? ButtonEventKind.DOWN : ButtonEventKind.UP;
@@ -333,7 +330,7 @@ namespace DeckSurf.SDK.Models
 
                 if (this.OnButtonPress != null)
                 {
-                    this.OnButtonPress(this.UnderlyingDevice, new ButtonPressEventArgs(this.pressedButtonId, buttonKind));
+                    this.OnButtonPress(this.UnderlyingDevice, new ButtonPressEventArgs(this.PressedButtonId, buttonKind));
                 }
 
 
@@ -352,7 +349,7 @@ namespace DeckSurf.SDK.Models
 
             if (this.OnButtonPress != null)
             {
-                this.OnButtonPress(this.UnderlyingDevice, new ButtonPressEventArgs(this.pressedButtonId, ButtonEventKind.LONG_DOWN));
+                this.OnButtonPress(this.UnderlyingDevice, new ButtonPressEventArgs(this.PressedButtonId, ButtonEventKind.LONG_DOWN));
             }
         }
 
