@@ -1,5 +1,4 @@
-﻿using DeckSurf.SDK.Util;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -156,7 +155,7 @@ namespace MacroDeck.StreamDeckConnector.Models
             get => (Color) new ColorConverter().ConvertFromString(this.BackgroundColorHex);
         }
 
-        public byte[] GetCurrentFrame(int size)
+        public byte[] GetCurrentFrame(int size, bool cropped = false)
         {
             if (IsDisposed) return null;
             try
@@ -169,13 +168,23 @@ namespace MacroDeck.StreamDeckConnector.Models
                     g.InterpolationMode = InterpolationMode.HighQualityBicubic;
                     g.SmoothingMode = SmoothingMode.HighQuality;
                     g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+
+                    int iconPosition = cropped ? 10 : 0;
+                    int iconSize = cropped ? size - 20 : size;
+
+
+                    using (SolidBrush brush = new SolidBrush(this.BackgroundColor))
+                    {
+                        g.FillRectangle(brush, iconPosition, iconPosition, iconSize, iconSize);
+                    }
+
                     if (_iconImage != null)
                     {
-                        g.DrawImage(_iconImage, 0, 0, size, size);
+                        g.DrawImage(_iconImage, iconPosition, iconPosition, iconSize, iconSize);
                     }
                     if (_labelBitmap != null)
                     {
-                        g.DrawImage(_labelBitmap, 0, 0, size, size);
+                        g.DrawImage(_labelBitmap, iconPosition, iconPosition, iconSize, iconSize);
                     }
                 }
 
@@ -186,7 +195,7 @@ namespace MacroDeck.StreamDeckConnector.Models
 
                 return bufferStream.ToArray();
             }
-            catch (Exception ex)
+            catch
             {
                 return null;
             }
