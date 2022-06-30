@@ -1,6 +1,7 @@
 ﻿using DeckSurf.SDK.Core;
 using DeckSurf.SDK.Models;
 using MacroDeck.StreamDeckConnector.Models;
+using MacroDeck.StreamDeckConnector.Utils;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -149,7 +150,7 @@ namespace MacroDeck.StreamDeckConnector
             }
         }
 
-        private void FrameUpdateTimer_Elapsed(object? sender, ElapsedEventArgs e)
+        private void FrameUpdateTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
             UpdateAllButtons();
         }
@@ -204,7 +205,7 @@ namespace MacroDeck.StreamDeckConnector
             }
         }
 
-        private void UpdateButton(int id, ActionButtonModel? actionButton)
+        private void UpdateButton(int id, ActionButtonModel actionButton)
         {
             if (_connectedDevice == null) return;
             if (actionButton != null)
@@ -216,7 +217,7 @@ namespace MacroDeck.StreamDeckConnector
             }
             else
             {
-                this._connectedDevice?.SetKey(id, DeviceConstants.XLDefaultBlackButton);
+                this._connectedDevice?.SetKey(id, EmptyButtonImageGenerator.GetEmptyButton(this._connectedDevice.ButtonSize, this.buttonPressed && this._connectedDevice?.PressedButtonId == id));
             }
         }
 
