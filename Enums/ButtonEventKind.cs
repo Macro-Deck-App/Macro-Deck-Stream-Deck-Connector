@@ -1,12 +1,6 @@
-﻿// Copyright (c) Den Delimarsky
-// Den Delimarsky licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
-
-namespace DeckSurf.SDK.Models
+﻿
+namespace MacroDeck.StreamDeckConnector
 {
-    /// <summary>
-    /// Represents a Stream Deck button state.
-    /// </summary>
     public enum ButtonEventKind
     {
         DOWN = 0,

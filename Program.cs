@@ -1,4 +1,3 @@
-using DeckSurf.SDK.Core;
 using System;
 using System.Threading;
 
@@ -14,8 +13,7 @@ namespace MacroDeck.StreamDeckConnector
         [STAThread]
         public static void Main(string[] args)
         {
-            var exitSignal = new ManualResetEvent(false);
-            for (int i = 0; i < args.Length; i++)
+            for (var i = 0; i < args.Length; i++)
             {
                 try
                 {
@@ -27,15 +25,14 @@ namespace MacroDeck.StreamDeckConnector
                             break;
                         case "--long-press-ms":
                             if (args[i + 1] == null) break;
-                            LongPressDelay = Int32.Parse(args[i + 1]);
+                            LongPressDelay = int.Parse(args[i + 1]);
                             break;
                     }
                 } catch { }
             }
             Console.WriteLine($"Using host {Host}");
-
             USBHelper.Initialize();
-            exitSignal.WaitOne();
+            new ManualResetEvent(false).WaitOne();
         }
 
     }
