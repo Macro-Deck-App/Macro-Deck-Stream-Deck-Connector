@@ -1,4 +1,5 @@
-﻿using System;
+﻿using OpenMacroBoard.SDK;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -10,7 +11,7 @@ namespace MacroDeck.StreamDeckConnector.Utils
 {
     public class EmptyButtonImageGenerator
     {
-        public static byte[] GetEmptyButton(int size, bool cropped = false)
+        public static KeyBitmap GetEmptyButton(int size, bool cropped = false)
         {
             try
             {
@@ -27,19 +28,17 @@ namespace MacroDeck.StreamDeckConnector.Utils
                     int iconSize = cropped ? size - 20 : size;
 
 
-                    using (SolidBrush brush = new SolidBrush(Color.FromArgb(35, 35, 35)))
-                    {
-                        g.FillRectangle(brush, iconPosition, iconPosition, iconSize, iconSize);
-                    }
+                    using SolidBrush brush = new SolidBrush(Color.FromArgb(35, 35, 35));
+                    g.FillRectangle(brush, iconPosition, iconPosition, iconSize, iconSize);
 
                 }
 
                 combined.RotateFlip(RotateFlipType.Rotate180FlipNone);
 
                 using var bufferStream = new MemoryStream();
-                combined.Save(bufferStream, ImageFormat.Jpeg);
+                combined.Save(bufferStream, ImageFormat.Png);
 
-                return bufferStream.ToArray();
+                return KeyBitmap.Create.FromStream(bufferStream);
             }
             catch
             {

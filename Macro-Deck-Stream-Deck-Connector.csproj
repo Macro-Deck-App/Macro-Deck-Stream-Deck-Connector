@@ -10,23 +10,29 @@
 	<PublishSingleFile>true</PublishSingleFile>
 	<SelfContained>true</SelfContained>
 	<IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+	<LangVersion>8</LangVersion>
+	<Nullable>enable</Nullable>
+	<PackageVersion>1.2.0</PackageVersion>
   </PropertyGroup>
   <ItemGroup>
 	  <None Remove=".gitignore" />
   </ItemGroup>
   <ItemGroup>
-	  <PackageReference Include="HidSharp" Version="2.1.0" />
 	  <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+	  <PackageReference Include="StreamDeckSharp" Version="3.2.0" />
 	  <PackageReference Include="System.Drawing.Common" Version="6.0.0" />
 	  <PackageReference Include="System.Management" Version="6.0.0" />
 	  <PackageReference Include="Usb.Events" Version="10.0.1.1" />
 	  <PackageReference Include="Websocket.Client" Version="4.4.43" />
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Extensions" />
+  </ItemGroup>
 
 
   <PropertyGroup>
 	  <DebugType>embedded</DebugType>
-	  <Version>1.1.0</Version>
+	  <Version>1.2.0</Version>
   </PropertyGroup>
 
 </Project>

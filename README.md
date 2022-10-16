@@ -33,8 +33,7 @@ It connects via websocket to Macro Deck and directly communicates with the Strea
 
 ## Third party licenses
 This software uses some awesome 3rd party libraries:
-- [DeckSurf SDK (MIT)](https://github.com/dend/decksurf-sdk)
-- [HidSharp (Apache 2.0)](https://www.zer7.com/software/hidsharp)
+- [StreamDeckSharp (MIT)](https://github.com/OpenMacroBoard/StreamDeckSharp)
 - [Newtonsoft.Json (MIT)](https://www.newtonsoft.com/json)
 - [Usb.Events (MIT)](https://github.com/Jinjinov/Usb.Events)
 - [Websocket.Client (MIT)](https://github.com/Marfusios/websocket-client))

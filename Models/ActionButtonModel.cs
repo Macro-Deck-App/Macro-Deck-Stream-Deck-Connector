@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using OpenMacroBoard.SDK;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -13,11 +14,10 @@ using System.Timers;
 
 namespace MacroDeck.StreamDeckConnector.Models
 {
-    internal class ActionButtonModel : IDisposable
+    internal sealed class ActionButtonModel : IDisposable
     {
-        private IntPtr _bufferPtr;
+        private readonly IntPtr _bufferPtr;
         private int BUFFER_SIZE = 1024 * 1024;
-        private bool _disposed = false;
 
         public ActionButtonModel()
         {
@@ -25,18 +25,11 @@ namespace MacroDeck.StreamDeckConnector.Models
         }
 
         [JsonIgnore]
-        public bool IsDisposed
-        {
-            get
-            {
-                return this._disposed;
-            }
-        }
+        private bool IsDisposed { get; set; } = false;
 
-
-        protected virtual void Dispose(bool disposing)
+        private void Dispose(bool disposing)
         {
-            if (_disposed)
+            if (IsDisposed)
                 return;
 
             if (disposing)
@@ -56,7 +49,7 @@ namespace MacroDeck.StreamDeckConnector.Models
             }
 
             Marshal.FreeHGlobal(_bufferPtr);
-            _disposed = true;
+            IsDisposed = true;
         }
 
         public void Dispose()
@@ -69,6 +62,9 @@ namespace MacroDeck.StreamDeckConnector.Models
         {
             Dispose(false);
         }
+
+        private readonly object _iconLock = new object();
+        private readonly object _labelLock = new object();
 
         private string _iconBase64;
 
@@ -84,7 +80,6 @@ namespace MacroDeck.StreamDeckConnector.Models
 
         private int _frameDelay = 0;
 
-
         private long _lastFrameUpdate = 0;
         
         public string IconBase64
@@ -92,54 +87,69 @@ namespace MacroDeck.StreamDeckConnector.Models
             get => _iconBase64;
             set
             {
-                _iconBase64 = value;
-                _iconImage = Utils.Base64.GetImageFromBase64(this.IconBase64);
-                if (_iconImage == null) return;
-                if (_iconImage.RawFormat.Guid == ImageFormat.Gif.Guid)
+                if (_iconBase64 == value) return;
+                lock (_iconLock)
                 {
-                    PropertyItem item = _iconImage.GetPropertyItem(0x5100);
-                    _frameDelay =  (item.Value[0] + item.Value[1] * 256) * 10;
-                    _frameCount = _iconImage.GetFrameCount(FrameDimension.Time);
-                }
-                UpdateCurrentFrame();
-            }
-        }
-
-        public void FrameTick()
-        {
-            if (_frameDelay > 0 && DateTimeOffset.Now.ToUnixTimeMilliseconds() - _lastFrameUpdate >= _frameDelay)
-            {
-                _lastFrameUpdate = DateTimeOffset.Now.ToUnixTimeMilliseconds();
-
-                _frameIndex++;
-                if (_frameIndex >= _frameCount - 1)
-                {
+                    _iconBase64 = value;
+                    _iconImage = Utils.Base64.GetImageFromBase64(IconBase64);
+                    if (_iconImage == null) return;
+                    if (_iconImage.RawFormat.Guid == ImageFormat.Gif.Guid)
+                    {
+                        var item = _iconImage.GetPropertyItem(0x5100);
+                        _frameDelay =  (item.Value[0] + item.Value[1] * 256) * 10;
+                        _frameCount = _iconImage.GetFrameCount(FrameDimension.Time);
+                    }
                     _frameIndex = 0;
+                    UpdateCurrentFrame();
                 }
-                UpdateCurrentFrame();
             }
         }
-
-        private void UpdateCurrentFrame()
-        {
-            if (_iconImage == null) return;
-            try
-            {
-                _iconImage.SelectActiveFrame(FrameDimension.Time, _frameIndex);
-            }
-            catch { }
-        }
-
+        
         public string LabelBase64
         {
             get => _labelBase64;
             set
             {
-                _labelBase64 = value;
-                _labelBitmap = (Bitmap)Utils.Base64.GetImageFromBase64(_labelBase64);
-                UpdateCurrentFrame();
+                if (_labelBase64 == value) return;
+                lock (_labelLock)
+                {
+                    _labelBase64 = value;
+                    _labelBitmap = (Bitmap)Utils.Base64.GetImageFromBase64(_labelBase64);
+                    UpdateCurrentFrame();
+                }
             }
         }
+
+        public void FrameTick()
+        {
+            if (_frameDelay <= 0 ||
+                DateTimeOffset.Now.ToUnixTimeMilliseconds() - _lastFrameUpdate < _frameDelay) return;
+            _lastFrameUpdate = DateTimeOffset.Now.ToUnixTimeMilliseconds();
+
+            _frameIndex++;
+            if (_frameIndex >= _frameCount - 1)
+            {
+                _frameIndex = 0;
+            }
+            UpdateCurrentFrame();
+        }
+
+        private void UpdateCurrentFrame()
+        {
+            try
+            {
+                lock (_iconLock)
+                {
+                    if (_iconImage == null) return;
+                    _iconImage.SelectActiveFrame(FrameDimension.Time, _frameIndex);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error while updating frame: {ex.Message}");
+            }
+        }
+
 
         public string BackgroundColorHex { get; set; } = "#000000";
 
@@ -150,53 +160,55 @@ namespace MacroDeck.StreamDeckConnector.Models
         public int Row { get; set; }
 
         [JsonIgnore]
-        public Color BackgroundColor
-        {
-            get => (Color) new ColorConverter().ConvertFromString(this.BackgroundColorHex);
-        }
+        private Color BackgroundColor => (Color) new ColorConverter().ConvertFromString(BackgroundColorHex);
 
-        public byte[] GetCurrentFrame(int size, bool cropped = false)
+        public KeyBitmap? GetCurrentFrame(int size)
         {
             if (IsDisposed) return null;
             try
             {
-                Bitmap combined = new Bitmap(size, size, PixelFormat.Format24bppRgb);
+                var combined = new Bitmap(size, size, PixelFormat.Format24bppRgb);
 
-                using (Graphics g = Graphics.FromImage(combined))
+                using (var g = Graphics.FromImage(combined))
                 {
                     g.CompositingQuality = CompositingQuality.HighQuality;
                     g.InterpolationMode = InterpolationMode.HighQualityBicubic;
                     g.SmoothingMode = SmoothingMode.HighQuality;
                     g.PixelOffsetMode = PixelOffsetMode.HighQuality;
 
-                    int iconPosition = cropped ? 10 : 0;
-                    int iconSize = cropped ? size - 20 : size;
+                    const int iconPosition = 0;
 
-
-                    using (SolidBrush brush = new SolidBrush(this.BackgroundColor))
+                    using (var brush = new SolidBrush(BackgroundColor))
                     {
-                        g.FillRectangle(brush, iconPosition, iconPosition, iconSize, iconSize);
+                        g.FillRectangle(brush, iconPosition, iconPosition, size, size);
                     }
 
-                    if (_iconImage != null)
+                    lock (_iconLock)
                     {
-                        g.DrawImage(_iconImage, iconPosition, iconPosition, iconSize, iconSize);
+                        if (_iconImage != null)
+                        {
+                            g.DrawImage(_iconImage, iconPosition, iconPosition, size, size);
+                        }
                     }
-                    if (_labelBitmap != null)
+
+                    lock (_labelLock)
                     {
-                        g.DrawImage(_labelBitmap, iconPosition, iconPosition, iconSize, iconSize);
+                        if (_labelBitmap != null)
+                        {
+                            g.DrawImage(_labelBitmap, iconPosition, iconPosition, size, size);
+                        }
                     }
+                    
                 }
 
-                combined.RotateFlip(RotateFlipType.Rotate180FlipNone);
-
                 using var bufferStream = new MemoryStream();
-                combined.Save(bufferStream, ImageFormat.Jpeg);
+                combined.Save(bufferStream, ImageFormat.Png);
 
-                return bufferStream.ToArray();
+                return KeyBitmap.Create.FromStream(bufferStream);
             }
-            catch
+            catch (Exception ex)
             {
+                Console.WriteLine(ex.Message);
                 return null;
             }
         }
