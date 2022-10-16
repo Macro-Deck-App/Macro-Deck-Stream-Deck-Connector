@@ -11,30 +11,25 @@ namespace MacroDeck.StreamDeckConnector.Utils
 {
     public class EmptyButtonImageGenerator
     {
-        public static KeyBitmap GetEmptyButton(int size, bool cropped = false)
+        public static KeyBitmap GetEmptyButton(int size)
         {
             try
             {
-                Bitmap combined = new Bitmap(size, size, PixelFormat.Format24bppRgb);
+                var combined = new Bitmap(size, size, PixelFormat.Format24bppRgb);
 
-                using (Graphics g = Graphics.FromImage(combined))
+                const int iconPosition = 0;
+
+                using (var g = Graphics.FromImage(combined))
                 {
                     g.CompositingQuality = CompositingQuality.HighQuality;
                     g.InterpolationMode = InterpolationMode.HighQualityBicubic;
                     g.SmoothingMode = SmoothingMode.HighQuality;
                     g.PixelOffsetMode = PixelOffsetMode.HighQuality;
-
-                    int iconPosition = cropped ? 10 : 0;
-                    int iconSize = cropped ? size - 20 : size;
-
-
-                    using SolidBrush brush = new SolidBrush(Color.FromArgb(35, 35, 35));
-                    g.FillRectangle(brush, iconPosition, iconPosition, iconSize, iconSize);
-
+                    
+                    using var brush = new SolidBrush(Color.FromArgb(35, 35, 35));
+                    g.FillRectangle(brush, iconPosition, iconPosition, size, size);
                 }
-
-                combined.RotateFlip(RotateFlipType.Rotate180FlipNone);
-
+                
                 using var bufferStream = new MemoryStream();
                 combined.Save(bufferStream, ImageFormat.Png);
 
@@ -42,8 +37,9 @@ namespace MacroDeck.StreamDeckConnector.Utils
             }
             catch
             {
-                return null;
+                return KeyBitmap.Black;
             }
+
         }
 
     }

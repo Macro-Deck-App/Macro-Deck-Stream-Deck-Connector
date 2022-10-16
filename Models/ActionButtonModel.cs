@@ -70,9 +70,9 @@ namespace MacroDeck.StreamDeckConnector.Models
 
         private string _labelBase64;
 
-        private Image _iconImage;
+        private Image? _iconImage;
 
-        private Bitmap _labelBitmap;
+        private Bitmap? _labelBitmap;
 
         private int _frameIndex = 0;
 
@@ -96,8 +96,11 @@ namespace MacroDeck.StreamDeckConnector.Models
                     if (_iconImage.RawFormat.Guid == ImageFormat.Gif.Guid)
                     {
                         var item = _iconImage.GetPropertyItem(0x5100);
-                        _frameDelay =  (item.Value[0] + item.Value[1] * 256) * 10;
-                        _frameCount = _iconImage.GetFrameCount(FrameDimension.Time);
+                        if (item?.Value != null)
+                        {
+                            _frameDelay = (item.Value[0] + item.Value[1] * 256) * 10;
+                            _frameCount = _iconImage.GetFrameCount(FrameDimension.Time);
+                        }
                     }
                     _frameIndex = 0;
                     UpdateCurrentFrame();
@@ -165,6 +168,7 @@ namespace MacroDeck.StreamDeckConnector.Models
         public KeyBitmap? GetCurrentFrame(int size)
         {
             if (IsDisposed) return null;
+            const int iconPosition = 0;
             try
             {
                 var combined = new Bitmap(size, size, PixelFormat.Format24bppRgb);
@@ -175,9 +179,7 @@ namespace MacroDeck.StreamDeckConnector.Models
                     g.InterpolationMode = InterpolationMode.HighQualityBicubic;
                     g.SmoothingMode = SmoothingMode.HighQuality;
                     g.PixelOffsetMode = PixelOffsetMode.HighQuality;
-
-                    const int iconPosition = 0;
-
+                    
                     using (var brush = new SolidBrush(BackgroundColor))
                     {
                         g.FillRectangle(brush, iconPosition, iconPosition, size, size);
@@ -201,14 +203,16 @@ namespace MacroDeck.StreamDeckConnector.Models
                     
                 }
 
-                using var bufferStream = new MemoryStream();
-                combined.Save(bufferStream, ImageFormat.Png);
+                //using var bufferStream = new MemoryStream();
+                //combined.Save(bufferStream, ImageFormat.Png);
 
-                return KeyBitmap.Create.FromStream(bufferStream);
+                return KeyBitmap.Create.FromBitmap(combined);
+
+                //return KeyBitmap.Create.FromStream(bufferStream);
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                Console.WriteLine($"Error while rendering current frame: {ex.Message}");
                 return null;
             }
         }

@@ -51,11 +51,16 @@ namespace MacroDeck.StreamDeckConnector
                 button?.Dispose();
             }
             _websocketClient?.Dispose();
-            if (_frameUpdateTimer != null)
+            try
             {
                 _frameUpdateTimer.Stop();
                 _frameUpdateTimer.Dispose();
             }
+            catch
+            {
+                // ignored
+            }
+
             _connectedDevice?.Close();
         }
 
@@ -126,23 +131,22 @@ namespace MacroDeck.StreamDeckConnector
         private bool _buttonsUpdating;
         private void UpdateAllButtons()
         {
-            if (_connectedDevice == null || _buttonsUpdating) return;
+            if (_buttonsUpdating) return;
             _buttonsUpdating = true;
             for (var row = 0; row < _connectedDevice?.Rows; row++)
             {
                 for (var col = 0; col < _connectedDevice?.Columns; col++)
                 {
                     var keyId = row * _connectedDevice.Columns + col;
-                    var actionButton = _buttons.ToArray().FirstOrDefault(x => x.Column == col && x.Row == row);
+                    var actionButton = _buttons.ToArray().FirstOrDefault(x => x != null && x.Column == col && x.Row == row);
                     UpdateButton(keyId, actionButton);
                 }
             }
             _buttonsUpdating = false;
         }
 
-        private void UpdateButton(int id, ActionButtonModel actionButton)
+        private void UpdateButton(int id, ActionButtonModel? actionButton)
         {
-            if (_connectedDevice == null) return;
             if (actionButton != null)
             {
                 actionButton.FrameTick();

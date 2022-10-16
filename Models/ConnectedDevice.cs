@@ -6,7 +6,7 @@ using OpenMacroBoard.SDK;
 using StreamDeckSharp;
 using Timer = System.Timers.Timer;
 
-namespace MacroDeck.StreamDeckConnector
+namespace MacroDeck.StreamDeckConnector.Models
 {
     public class ConnectedDevice
     {
@@ -82,11 +82,6 @@ namespace MacroDeck.StreamDeckConnector
 
         private void StreamDeck_KeyStateChanged(object sender, KeyEventArgs e)
         {
-            if (PressedButtonId == -1)
-            {
-                OnButtonPress?.Invoke(sender, new ButtonPressEventArgs(PressedButtonId, ButtonEventKind.UP));
-            }
-
             if (e.Key > -1)
             {
                 PressedButtonId = e.Key;
@@ -100,6 +95,7 @@ namespace MacroDeck.StreamDeckConnector
             }
             else
             {
+                OnButtonPress?.Invoke(sender, new ButtonPressEventArgs(PressedButtonId, ButtonEventKind.UP));
                 if (longPress)
                 {
                     buttonKind = ButtonEventKind.LONG_UP;

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using MacroDeck.StreamDeckConnector.Models;
 using MacroDeck.StreamDeckConnector.Parsers;
 using StreamDeckSharp;
 using Usb.Events;
@@ -51,6 +52,7 @@ namespace MacroDeck.StreamDeckConnector
             var devices = StreamDeck.EnumerateDevices();
             foreach (var device in devices)
             {
+                Console.WriteLine($"Found {device.DeviceName} @ {device.DevicePath}");
                 try
                 {
                     var connectedDevice = new ConnectedDevice(device.DevicePath);
