@@ -1,5 +1,4 @@
-﻿
-namespace MacroDeck.StreamDeckConnector;
+﻿namespace MacroDeck.StreamDeckConnector.Enums;
 
 public enum ButtonEventKind
 {
