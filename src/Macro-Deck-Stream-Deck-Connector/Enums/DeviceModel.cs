@@ -1,9 +1,8 @@
-﻿namespace MacroDeck.StreamDeckConnector.Enums
+﻿namespace MacroDeck.StreamDeckConnector.Enums;
+
+public enum DeviceModel
 {
-    public enum DeviceModel
-    {
-        ORIGINAL,
-        XL,
-        MINI
-    }
+    ORIGINAL,
+    XL,
+    MINI
 }

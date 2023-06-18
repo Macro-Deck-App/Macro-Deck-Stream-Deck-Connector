@@ -1,75 +1,76 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using MacroDeck.StreamDeckConnector.Models;
 using MacroDeck.StreamDeckConnector.Parsers;
 using StreamDeckSharp;
 using Usb.Events;
 
-namespace MacroDeck.StreamDeckConnector
+namespace MacroDeck.StreamDeckConnector;
+
+internal class USBHelper
 {
-    internal class USBHelper
+    private static readonly Dictionary<string, MacroDeckClient> ConnectedClients = new();
+
+    public static async ValueTask Initialize()
     {
-        private static Dictionary<string, MacroDeckClient> connectedClients = new Dictionary<string, MacroDeckClient>();
+        IUsbEventWatcher usbEventWatcher = new UsbEventWatcher(includeTTY: true);
 
-        public static void Initialize()
+        usbEventWatcher.UsbDeviceRemoved += (_, device) =>
         {
-            IUsbEventWatcher usbEventWatcher = new UsbEventWatcher(includeTTY: true);
+            if (!ConnectedClients.ContainsKey(device.SerialNumber)) return;
+            Console.WriteLine($"{device.SerialNumber} removed");
+            ConnectedClients[device.SerialNumber].Close();
+            ConnectedClients.Remove(device.SerialNumber);
+        };
 
-            usbEventWatcher.UsbDeviceRemoved += (_, device) =>
+        usbEventWatcher.UsbDeviceAdded += async (_, device) =>
+        {
+            if (ConnectedClients.ContainsKey(device.SerialNumber)) return;
+            Console.WriteLine($"{device.SerialNumber} added");
+            Console.WriteLine("Vendor ID: " + int.Parse(device.VendorID, System.Globalization.NumberStyles.HexNumber));
+            Console.WriteLine("Product ID: " + int.Parse(device.ProductID, System.Globalization.NumberStyles.HexNumber));
+            Console.WriteLine("Serial Number: " + device.SerialNumber);
+            Console.WriteLine("Description: " + device.ProductDescription);
+            try
             {
-                if (!connectedClients.ContainsKey(device.SerialNumber)) return;
-                Console.WriteLine($"{device.SerialNumber} removed");
-                connectedClients[device.SerialNumber].Close();
-                connectedClients.Remove(device.SerialNumber);
-            };
-
-            usbEventWatcher.UsbDeviceAdded += (_, device) =>
-            {
-                if (connectedClients.ContainsKey(device.SerialNumber)) return;
-                Console.WriteLine($"{device.SerialNumber} added");
-                Console.WriteLine("Vendor ID: " + int.Parse(device.VendorID, System.Globalization.NumberStyles.HexNumber));
-                Console.WriteLine("Product ID: " + int.Parse(device.ProductID, System.Globalization.NumberStyles.HexNumber));
-                Console.WriteLine("Serial Number: " + device.SerialNumber);
-                Console.WriteLine("Description: " + device.ProductDescription);
-                try
-                {
-                    var serialNumber = SerialNumberParser.SerialNumberFromDevicePath(device.DeviceSystemPath);
-                    var streamDeckRefHandle = StreamDeck.EnumerateDevices().FirstOrDefault(d =>
-                        SerialNumberParser.SerialNumberFromDevicePath(d.DevicePath) == serialNumber);
+                var serialNumber = SerialNumberParser.SerialNumberFromDevicePath(device.DeviceSystemPath);
+                var streamDeckRefHandle = StreamDeck.EnumerateDevices().FirstOrDefault(d =>
+                    SerialNumberParser.SerialNumberFromDevicePath(d.DevicePath) == serialNumber);
                     
-                    if (streamDeckRefHandle == null) return;
-                    var connectedDevice = new ConnectedDevice(streamDeckRefHandle.DevicePath);
-                    ConnectDevice(connectedDevice);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Failed to parse serial number: {ex.Message}");
-                }
-
-            };
-
-            var devices = StreamDeck.EnumerateDevices();
-            foreach (var device in devices)
-            {
-                Console.WriteLine($"Found {device.DeviceName} @ {device.DevicePath}");
-                try
-                {
-                    var connectedDevice = new ConnectedDevice(device.DevicePath);
-                    ConnectDevice(connectedDevice);
-                } catch {}
+                if (streamDeckRefHandle == null) return;
+                var connectedDevice = new ConnectedDevice(streamDeckRefHandle.DevicePath);
+                await ConnectDevice(connectedDevice);
             }
-        }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to parse serial number: {ex.Message}");
+            }
 
-        private static void ConnectDevice(ConnectedDevice connectedDevice)
+        };
+
+        var devices = StreamDeck.EnumerateDevices();
+        foreach (var device in devices)
         {
-            if (connectedClients.ContainsKey(connectedDevice.SerialNumber))
+            Console.WriteLine($"Found {device.DeviceName} @ {device.DevicePath}");
+            try
             {
-                connectedClients[connectedDevice.SerialNumber].Close();
-                connectedClients.Remove(connectedDevice.SerialNumber);
-            }
-            var client = new MacroDeckClient(new Uri($"ws://{Program.Host}"), connectedDevice);
-            connectedClients.Add(connectedDevice.SerialNumber, client);
+                var connectedDevice = new ConnectedDevice(device.DevicePath);
+                await ConnectDevice(connectedDevice);
+            } catch {}
         }
+    }
+
+    private static async ValueTask ConnectDevice(ConnectedDevice connectedDevice)
+    {
+        if (ConnectedClients.TryGetValue(connectedDevice.SerialNumber, out var value))
+        {
+            value.Close();
+            ConnectedClients.Remove(connectedDevice.SerialNumber);
+        }
+        var client = new MacroDeckClient(new Uri($"ws://{Program.Host}"), connectedDevice);
+        await client.Start();
+        ConnectedClients.Add(connectedDevice.SerialNumber, client);
     }
 }

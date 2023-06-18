@@ -1,11 +1,10 @@
 ﻿
-namespace MacroDeck.StreamDeckConnector
+namespace MacroDeck.StreamDeckConnector;
+
+public enum ButtonEventKind
 {
-    public enum ButtonEventKind
-    {
-        DOWN = 0,
-        UP = 1,
-        LONG_DOWN = 2,
-        LONG_UP = 3
-    }
+    DOWN = 0,
+    UP = 1,
+    LONG_DOWN = 2,
+    LONG_UP = 3
 }
