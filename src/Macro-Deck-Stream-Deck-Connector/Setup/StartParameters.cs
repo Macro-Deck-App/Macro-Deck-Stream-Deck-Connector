@@ -14,9 +14,15 @@ public class StartParameters
     [Option("wss", Default = false, Required = false)]
     public bool WebSocketSecure { get; set; }
 
-    public StartParameters()
+    public static StartParameters ParseParameters()
     {
         var args = Environment.GetCommandLineArgs();
+        var startParameters = new StartParameters();
+        if (args.Length == 0)
+        {
+            return startParameters;
+        }
+
         using var parser = new Parser(options =>
         {
             options.HelpWriter = Console.Error;
@@ -25,11 +31,10 @@ public class StartParameters
         });
 
         parser.ParseArguments<StartParameters>(args)
-            .WithParsed(sp =>
-            {
-                Host = sp.Host;
-                LongPressDelay = sp.LongPressDelay;
-                WebSocketSecure = sp.WebSocketSecure;
-            });
+            .WithParsed(sp => startParameters = sp);
+
+        return startParameters;
     }
+
+    public static StartParameters Instance { get; } = ParseParameters();
 }

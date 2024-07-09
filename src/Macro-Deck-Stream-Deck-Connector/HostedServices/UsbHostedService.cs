@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using MacroDeck.StreamDeckConnector.Models;
+using MacroDeck.StreamDeckConnector.DataTypes.Internal;
 using MacroDeck.StreamDeckConnector.Parsers;
 using MacroDeck.StreamDeckConnector.Setup;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Serilog;
 using StreamDeckSharp;
 using Usb.Events;
 
@@ -15,20 +15,16 @@ namespace MacroDeck.StreamDeckConnector.HostedServices;
 
 public class UsbHostedService : IHostedService
 {
+    private readonly ILogger _logger = Log.ForContext<UsbHostedService>();
+    
     private readonly IUsbEventWatcher _usbEventWatcher;
-    private readonly StartParameters _startParameters;
-    private readonly IServiceScopeFactory _serviceScopeFactory;
 
     private readonly Dictionary<string, MacroDeckClient> _connectedClients = new();
 
     public UsbHostedService(
-        IUsbEventWatcher usbEventWatcher,
-        StartParameters startParameters,
-        IServiceScopeFactory serviceScopeFactory)
+        IUsbEventWatcher usbEventWatcher)
     {
         _usbEventWatcher = usbEventWatcher;
-        _startParameters = startParameters;
-        _serviceScopeFactory = serviceScopeFactory;
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
@@ -46,13 +42,13 @@ public class UsbHostedService : IHostedService
         return Task.CompletedTask;
     }
 
-    private async ValueTask Initialize()
+    private async Task Initialize()
     {
         var connectedDevices = StreamDeck.EnumerateDevices();
         foreach (var device in connectedDevices)
         {
-            Console.WriteLine($"Found {device.DeviceName} @ {device.DevicePath}");
-            var connectedDevice = new ConnectedDevice(device.DevicePath, _serviceScopeFactory.CreateScope());
+            _logger.Information("Found {DeviceDeviceName}@{DeviceDevicePath}", device.DeviceName, device.DevicePath);
+            var connectedDevice = new ConnectedDevice(device.DevicePath, StartParameters.Instance.LongPressDelay);
             await ConnectDevice(connectedDevice);
         }
     }
@@ -64,11 +60,13 @@ public class UsbHostedService : IHostedService
             return;
         }
             
-        Console.WriteLine($"{device.SerialNumber} added");
-        Console.WriteLine("Vendor ID: " + int.Parse(device.VendorID, System.Globalization.NumberStyles.HexNumber));
-        Console.WriteLine("Product ID: " + int.Parse(device.ProductID, System.Globalization.NumberStyles.HexNumber));
-        Console.WriteLine("Serial Number: " + device.SerialNumber);
-        Console.WriteLine("Description: " + device.ProductDescription);
+        _logger.Information("{DeviceSerialNumber} added", device.SerialNumber);
+        _logger.Information("Vendor ID: {VendorId}",
+            int.Parse(device.VendorID, System.Globalization.NumberStyles.HexNumber));
+        _logger.Information("Product ID: {ProductId}",
+            int.Parse(device.ProductID, System.Globalization.NumberStyles.HexNumber));
+        _logger.Information("Serial Number: {SerialNumber}", device.SerialNumber);
+        _logger.Information("Description: {ProductDescription}", device.ProductDescription);
         try
         {
             var serialNumber = SerialNumberParser.SerialNumberFromDevicePath(device.DeviceSystemPath);
@@ -78,8 +76,9 @@ public class UsbHostedService : IHostedService
             {
                 return;
             }
-            
-            var connectedDevice = new ConnectedDevice(streamDeckRefHandle.DevicePath, _serviceScopeFactory.CreateScope());
+
+            var connectedDevice =
+                new ConnectedDevice(streamDeckRefHandle.DevicePath, StartParameters.Instance.LongPressDelay);
             await ConnectDevice(connectedDevice);
         }
         catch (Exception ex)
@@ -108,8 +107,8 @@ public class UsbHostedService : IHostedService
             _connectedClients.Remove(connectedDevice.SerialNumber);
         }
 
-        var protocol = _startParameters.WebSocketSecure ? "wss://" : "ws://";
-        var uri = new Uri($"{protocol}{_startParameters.Host}");
+        var protocol = StartParameters.Instance.WebSocketSecure ? "wss://" : "ws://";
+        var uri = new Uri($"{protocol}{StartParameters.Instance.Host}");
         
         client = new MacroDeckClient(uri, connectedDevice);
         _connectedClients.Add(connectedDevice.SerialNumber, client);
@@ -120,7 +119,7 @@ public class UsbHostedService : IHostedService
         }
         catch (Exception ex)
         {
-            Console.WriteLine("Failed to start client");
+            _logger.Error(ex, "Failed to start client");
         }
     }
 }

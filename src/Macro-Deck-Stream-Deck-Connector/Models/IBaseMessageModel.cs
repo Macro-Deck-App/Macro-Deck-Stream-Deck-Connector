@@ -1,6 +1,6 @@
-﻿using MacroDeck.StreamDeckConnector.Enums;
-using Newtonsoft.Json.Converters;
+﻿using Newtonsoft.Json.Converters;
 using System.Text.Json.Serialization;
+using MacroDeck.StreamDeckConnector.DataTypes.Internal.Enums;
 
 namespace MacroDeck.StreamDeckConnector.Models;
 

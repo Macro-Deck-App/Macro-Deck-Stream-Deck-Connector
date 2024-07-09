@@ -1,4 +1,4 @@
-﻿using MacroDeck.StreamDeckConnector.Enums;
+﻿using MacroDeck.StreamDeckConnector.DataTypes.Internal.Enums;
 using Newtonsoft.Json;
 
 namespace MacroDeck.StreamDeckConnector.Models;
@@ -15,9 +15,7 @@ internal class ConnectedMessageModel : IBaseMessageModel
 
     [JsonProperty("Device-Type")]
     public string DeviceType { get; } = "Web";
-        
-
-
+    
     public string Serialize()
     {
         return JsonConvert.SerializeObject(this, Formatting.None);

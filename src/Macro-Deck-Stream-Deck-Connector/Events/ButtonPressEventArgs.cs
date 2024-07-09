@@ -1,7 +1,7 @@
 ﻿using System;
-using MacroDeck.StreamDeckConnector.Enums;
+using MacroDeck.StreamDeckConnector.DataTypes.Internal.Enums;
 
-namespace MacroDeck.StreamDeckConnector.Models;
+namespace MacroDeck.StreamDeckConnector.Events;
 
 public class ButtonPressEventArgs : EventArgs
 {

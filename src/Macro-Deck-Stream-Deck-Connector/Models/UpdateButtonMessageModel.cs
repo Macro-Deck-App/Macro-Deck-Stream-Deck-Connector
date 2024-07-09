@@ -1,6 +1,7 @@
-﻿using MacroDeck.StreamDeckConnector.Enums;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using System.Collections.Generic;
+using MacroDeck.StreamDeckConnector.DataTypes.Internal.Enums;
+using MacroDeck.StreamDeckConnector.DataTypes.MacroDeckV2;
 
 namespace MacroDeck.StreamDeckConnector.Models;
 
@@ -8,7 +9,7 @@ internal class UpdateButtonMessageModel : IBaseMessageModel
 {
     public MessageMethod Method { get; set; } = MessageMethod.UPDATE_BUTTON;
 
-    public List<ActionButtonModel> Buttons { get; set; } = new List<ActionButtonModel>();
+    public List<V2ActionButton> Buttons { get; set; } = new List<V2ActionButton>();
 
     public string Serialize()
     {

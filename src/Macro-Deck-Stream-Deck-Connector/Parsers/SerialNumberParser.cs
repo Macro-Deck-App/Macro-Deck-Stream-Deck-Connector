@@ -14,10 +14,10 @@ public static class SerialNumberParser
             {
                 path = path.Replace(@"\\?\", string.Empty);
                 path = path.Replace("#", @"\");
-                path = path[..path.IndexOf("{")];
+                path = path[..path.IndexOf("{", StringComparison.Ordinal)];
                 path = path[..^1];
             }
-            serialNumber = path[(path.LastIndexOf(@"\") + 1)..];
+            serialNumber = path[(path.LastIndexOf(@"\", StringComparison.Ordinal) + 1)..];
         }
         catch (Exception ex)
         {

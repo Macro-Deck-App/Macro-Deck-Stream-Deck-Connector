@@ -1,18 +1,20 @@
 ﻿using System;
 using System.Linq;
 using HidSharp;
-using MacroDeck.StreamDeckConnector.Enums;
-using MacroDeck.StreamDeckConnector.Setup;
-using Microsoft.Extensions.DependencyInjection;
+using MacroDeck.StreamDeckConnector.DataTypes.Internal.Enums;
+using MacroDeck.StreamDeckConnector.Events;
 using OpenMacroBoard.SDK;
+using Serilog;
 using StreamDeckSharp;
 using Timer = System.Timers.Timer;
 
-namespace MacroDeck.StreamDeckConnector.Models;
+namespace MacroDeck.StreamDeckConnector.DataTypes.Internal;
 
 public class ConnectedDevice
 {
     public event EventHandler<ButtonPressEventArgs>? OnButtonPress;
+
+    private readonly ILogger _logger = Log.ForContext<ConnectedDevice>();
     
     private readonly IMacroBoard? _streamDeck;
     private readonly Timer _longPressTimer = new();
@@ -27,11 +29,10 @@ public class ConnectedDevice
     public int ButtonSize { get; }
     public bool Closed { get; private set; }
 
-
-    public ConnectedDevice(string path, IServiceScope scope)
+    public ConnectedDevice(string path, int longPressInterval)
     {
         _longPressTimer.Elapsed += LongPressTimer_Elapsed;
-        _longPressTimer.Interval = scope.ServiceProvider.GetRequiredService<StartParameters>().LongPressDelay;
+        _longPressTimer.Interval = longPressInterval;
 
         try
         {
@@ -45,7 +46,7 @@ public class ConnectedDevice
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Cannot open {path}: {ex.Message}");
+            _logger.Error(ex, "Cannot open {Path}", path);
             throw;
         }
 
@@ -59,21 +60,21 @@ public class ConnectedDevice
         };
         Columns = Model switch
         {
-            DeviceModel.XL => DeviceConstants.XLColumns,
+            DeviceModel.XL => DeviceConstants.XlColumns,
             DeviceModel.MINI => DeviceConstants.MiniColumns,
             DeviceModel.ORIGINAL => DeviceConstants.OriginalColumns,
             _ => 0,
         };
         Rows = Model switch
         {
-            DeviceModel.XL => DeviceConstants.XLRows,
+            DeviceModel.XL => DeviceConstants.XlRows,
             DeviceModel.MINI => DeviceConstants.MiniRows,
             DeviceModel.ORIGINAL => DeviceConstants.OriginalRows,
             _ => 0,
         };
         ButtonSize = Model switch
         {
-            DeviceModel.XL => DeviceConstants.XLButtonSize,
+            DeviceModel.XL => DeviceConstants.XlButtonSize,
             DeviceModel.MINI => DeviceConstants.UniversalButtonSize,
             DeviceModel.ORIGINAL => DeviceConstants.UniversalButtonSize,
             _ => DeviceConstants.UniversalButtonSize,

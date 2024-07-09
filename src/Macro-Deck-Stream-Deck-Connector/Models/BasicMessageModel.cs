@@ -1,4 +1,4 @@
-﻿using MacroDeck.StreamDeckConnector.Enums;
+﻿using MacroDeck.StreamDeckConnector.DataTypes.Internal.Enums;
 using Newtonsoft.Json;
 
 namespace MacroDeck.StreamDeckConnector.Models;
